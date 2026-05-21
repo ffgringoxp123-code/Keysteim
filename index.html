@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kitty Key System</title>
+
+<style>
+body{
+    background:#0d0d0d;
+    color:white;
+    font-family:Arial;
+    text-align:center;
+    padding:20px;
+}
+
+.box{
+    max-width:450px;
+    margin:auto;
+    background:#1a1a1a;
+    padding:20px;
+    border-radius:20px;
+    box-shadow:0 0 20px black;
+}
+
+input,button{
+    width:90%;
+    padding:12px;
+    margin:10px;
+    border:none;
+    border-radius:10px;
+}
+
+button{
+    background:#5865F2;
+    color:white;
+    font-size:16px;
+}
+
+.keybox{
+    background:#111;
+    padding:10px;
+    border-radius:10px;
+    margin-top:15px;
+    word-break:break-all;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+
+<h1>🔑 Kitty Key System</h1>
+
+<input type="number" id="hours" placeholder="Nhập số giờ key">
+
+<button onclick="createKey()">Tạo Key</button>
+
+<div class="keybox" id="result">
+Chưa có key
+</div>
+
+</div>
+
+<script>
+
+const webhook = "DÁN_WEBHOOK_DISCORD";
+
+function randomPart(length){
+    let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let result = "";
+
+    for(let i=0;i<length;i++){
+        result += chars.charAt(Math.floor(Math.random()*chars.length));
+    }
+
+    return result;
+}
+
+function createKey(){
+
+    let hours = document.getElementById("hours").value;
+
+    if(hours == ""){
+        alert("Nhập thời gian");
+        return;
+    }
+
+    let key =
+    "KITTY-" +
+    randomPart(5) + "-" +
+    randomPart(5) + "-" +
+    randomPart(5);
+
+    let now = Date.now();
+
+    let expire = now + (hours * 60 * 60 * 1000);
+
+    let data = {
+        key:key,
+        expire:expire
+    };
+
+    localStorage.setItem(key, JSON.stringify(data));
+
+    document.getElementById("result").innerHTML =
+    `
+    <h3>✅ Key Đã Tạo</h3>
+    <p>${key}</p>
+    <p>Hết hạn sau ${hours} giờ</p>
+    `;
+
+    sendWebhook(key, hours);
+}
+
+function checkKey(inputKey){
+
+    let data = localStorage.getItem(inputKey);
+
+    if(!data){
+        return "❌ Key không tồn tại";
+    }
+
+    data = JSON.parse(data);
+
+    let now = Date.now();
+
+    if(now >= data.expire){
+
+        localStorage.removeItem(inputKey);
+
+        return "⌛ Key đã hết hạn";
+    }
+
+    return "✅ Key hợp lệ";
+}
+
+function autoDeleteExpired(){
+
+    for(let i=0;i<localStorage.length;i++){
+
+        let key = localStorage.key(i);
+
+        try{
+
+            let data = JSON.parse(localStorage.getItem(key));
+
+            if(Date.now() >= data.expire){
+
+                localStorage.removeItem(key);
+
+                console.log("Đã xóa key hết hạn:", key);
+            }
+
+        }catch(e){}
+    }
+}
+
+setInterval(autoDeleteExpired, 5000);
+
+function sendWebhook(key, hours){
+
+    if(webhook == "DÁN_WEBHOOK_DISCORD") return;
+
+    fetch(webhook,{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+            content:
+            "🔑 Key mới được tạo\n\n" +
+            "Key: " + key + "\n" +
+            "Thời gian: " + hours + " giờ"
+        })
+    });
+
+}
+
+</script>
+
+</body>
+</html>
